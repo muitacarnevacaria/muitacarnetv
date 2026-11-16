@@ -1,0 +1,43 @@
+MUITA CARNE | TV - COMO USAR
+============================
+
+1. COLOCAR VÍDEOS E ARTES
+   Coloque os arquivos dentro da pasta "midia" com nomes numerados:
+     01.jpg
+     02.mp4
+     03.png
+   A TV toca tudo em loop, na ordem dos números.
+
+   Formatos aceitos:
+   - Vídeos: .mp4 (recomendado), .webm
+   - Artes:  .jpg, .jpeg, .png, .webp, .gif
+
+2. TROCAR UMA ARTE
+   Apague a antiga e coloque a nova com o MESMO número.
+   Ex.: trocar a promoção 02 -> apague 02.jpg e coloque o novo 02.jpg
+   Na próxima volta da programação a nova já aparece.
+
+   Regras:
+   - Use dois dígitos: 01, 02 ... 09, 10, 11...
+   - Pode pular números (01, 02, 05): os que faltam são ignorados.
+   - NÃO deixe dois arquivos com o mesmo número (03.jpg e 03.mp4).
+   - Até 30 itens. Para mais, altere "maxNumerados" no index.html.
+
+3. TEMPO DE CADA ARTE
+   Cada arte fica 10 segundos na tela.
+   Para mudar, altere "segundosPorArte" no index.html.
+
+4. DICAS PARA OS VÍDEOS RODAREM LISOS NA TV
+   - Exporte em 1920x1080 (Full HD), H.264, 30 fps.
+     Vídeos 4K ou H.265/HEVC travam ou nem abrem em muitas TVs.
+   - O vídeo não precisa de som: a TV toca sempre no mudo.
+
+5. COMO ABRIR
+   Funciona abrindo o index.html direto do computador ou pen drive,
+   ou hospedado em um site. As pastas "midia" e "src" precisam
+   ficar ao lado do index.html.
+
+6. LOGIN
+   Depois de entrar uma vez, a TV lembra e volta sozinha para a
+   programação quando é religada. Para sair, aperte qualquer botão
+   do controle (ou mexa o mouse) e clique em "Sair".

@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Muita Carne | TV</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    /* LOGIN */
+
+    #loginScreen {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      background: #252525;
+    }
+
+    .login-image {
+      width: 50%;
+      height: 100%;
+      position: relative;
+      background-image:
+        linear-gradient(to top, rgba(0,0,0,.65), transparent 65%),
+        url("src/fundo.png");
+      background-size: cover;
+      background-position: center;
+    }
+
+    .login-panel {
+      width: 50%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 50px;
+      background: #252525;
+    }
+
+    .login-content {
+      width: 100%;
+      max-width: 390px;
+    }
+
+    .login-logo {
+      width: 180px;
+      max-height: 100px;
+      object-fit: contain;
+      margin-bottom: 45px;
+    }
+
+    .login-content h1 {
+      color: #fff;
+      font-size: 30px;
+      margin-bottom: 10px;
+    }
+
+    .login-content p {
+      color: #aaa;
+      font-size: 15px;
+      margin-bottom: 35px;
+    }
+
+    .login-content input {
+      display: block;
+      width: 100%;
+      height: 55px;
+      padding: 0 18px;
+      margin-bottom: 15px;
+      border: 1px solid #444;
+      border-radius: 7px;
+      outline: none;
+      background: #333;
+      color: #fff;
+      font-size: 16px;
+    }
+
+    .login-content input:focus {
+      border-color: #ffff00;
+    }
+
+    .login-content button {
+      width: 100%;
+      height: 55px;
+      border: none;
+      border-radius: 7px;
+      background: #ffff00;
+      color: #000;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    #loginError {
+      display: none;
+      color: #ff5555;
+      margin-top: 15px;
+      font-size: 14px;
+    }
+
+    /* PLAYER */
+
+    #playerScreen {
+      display: none;
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      background: #000;
+      cursor: none;
+    }
+
+    #playerScreen.show-ui {
+      cursor: default;
+    }
+
+    /* Cada vídeo ou arte é uma camada. A nova entra por cima da antiga
+       e só aparece quando já está tocando, então nunca sobra tela vazia. */
+    .media {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      background: transparent;
+      border: 0;
+      outline: none;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--fade, 400ms) ease;
+    }
+
+    .media.visible {
+      opacity: 1;
+    }
+
+    /* Esconde qualquer controle ou botão de play que o navegador da TV desenhe. */
+    video::-webkit-media-controls,
+    video::-webkit-media-controls-enclosure,
+    video::-webkit-media-controls-panel,
+    video::-webkit-media-controls-overlay-play-button,
+    video::-webkit-media-controls-start-playback-button,
+    video::-webkit-media-controls-play-button {
+      display: none !important;
+      -webkit-appearance: none;
+      opacity: 0 !important;
+    }
+
+    /* O botão Sair só aparece quando alguém mexe no mouse ou no controle. */
+    #exitButton {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      z-index: 10;
+      padding: 10px 17px;
+      border: none;
+      border-radius: 20px;
+      background: rgba(0,0,0,.6);
+      color: #fff;
+      font-size: 13px;
+      cursor: pointer;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s ease;
+    }
+
+    #playerScreen.show-ui #exitButton {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    #exitButton:focus {
+      outline: 2px solid #ffff00;
+    }
+
+    #playerMessage {
+      display: none;
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      background: #000;
+      font-size: 20px;
+      text-align: center;
+      padding: 30px;
+    }
+
+    @media (max-width: 700px) {
+      .login-image {
+        display: none;
+      }
+
+      .login-panel {
+        width: 100%;
+        padding: 25px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- LOGIN -->
+  <section id="loginScreen">
+
+    <div class="login-image"></div>
+
+    <div class="login-panel">
+      <div class="login-content">
+
+        <img src="src/logo.png" class="login-logo" alt="Muita Carne">
+
+        <h1>Acesso ao sistema</h1>
+        <p>Entre para iniciar a programação da TV.</p>
+
+        <input
+          type="text"
+          id="username"
+          placeholder="Usuário"
+          autocomplete="username"
+        >
+
+        <input
+          type="password"
+          id="password"
+          placeholder="Senha"
+          autocomplete="current-password"
+        >
+
+        <button id="loginButton" type="button">ENTRAR</button>
+
+        <div id="loginError">
+          Usuário ou senha incorretos.
+        </div>
+
+      </div>
+    </div>
+
+  </section>
+
+  <!-- PLAYER -->
+  <section id="playerScreen">
+    <div id="stage"></div>
+    <button id="exitButton" type="button">Sair</button>
+    <div id="playerMessage"></div>
+  </section>
+
+  <script>
+    /* =========================================================
+       CONFIGURAÇÃO
+       ========================================================= */
+
+    const CONFIG = {
+      // Pasta onde ficam os vídeos e as artes.
+      // Tudo o que estiver nela entra na programação, em ordem alfabética.
+      // Para escolher a ordem, comece o nome com número: 01-..., 02-..., 03-...
+      pasta: "midia/",
+
+      // Quanto tempo cada arte (imagem) fica na tela, em segundos.
+      // Para uma arte específica, coloque o tempo no nome: promo__15s.jpg
+      segundosPorArte: 10,
+
+      // Transição entre um item e outro, em milissegundos (0 = corte seco).
+      transicaoMs: 400,
+
+      // "cover" preenche a TV inteira (corta as bordas se precisar).
+      // "contain" mostra a imagem inteira (pode sobrar faixa preta).
+      ajuste: "cover",
+
+      // Quantos números procurar na pasta (01, 02, ... até este).
+      maxNumerados: 30,
+
+      // Só é usado se o servidor não deixar ler a pasta (veja o LEIA-ME).
+      listaManual: [
+        // "01-video.mp4",
+        // "02-arte.jpg"
+      ]
+    };
+
+    const ACCESS = {
+      username: "mtcarnevacaria",
+      password: "geanedani"
+    };
+
+    /* =========================================================
+       PLAYER
+       ========================================================= */
+
+    const VIDEO_EXT = ["mp4", "webm", "m4v"];
+    const IMAGE_EXT = ["jpg", "jpeg", "png", "webp", "gif"];
+
+    // Imagem transparente de 1 pixel usada como capa dos vídeos.
+    // Sem capa, o navegador de muitas TVs desenha um ícone de play
+    // enquanto o vídeo carrega. Com ela, não desenha nada.
+    const BLANK_POSTER =
+      "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+
+    const VIDEO_TIMEOUT_MS = 30000;
+    const IMAGE_TIMEOUT_MS = 20000;
+    const STALL_LIMIT_MS = 15000;
+
+    const loginScreen = document.getElementById("loginScreen");
+    const playerScreen = document.getElementById("playerScreen");
+    const stage = document.getElementById("stage");
+    const playerMessage = document.getElementById("playerMessage");
+    const exitButton = document.getElementById("exitButton");
+
+    document.documentElement.style.setProperty("--fade", CONFIG.transicaoMs + "ms");
+
+    let playlist = [];
+    let index = -1;
+    let current = null;
+    let session = 0;
+    let imageTimer = null;
+    let stallTimer = null;
+    let wakeLock = null;
+
+    function extensionOf(name) {
+      const clean = name.split("?")[0].split("#")[0];
+      const dot = clean.lastIndexOf(".");
+      return dot === -1 ? "" : clean.slice(dot + 1).toLowerCase();
+    }
+
+    function typeOf(name) {
+      const ext = extensionOf(name);
+      if (VIDEO_EXT.includes(ext)) return "video";
+      if (IMAGE_EXT.includes(ext)) return "image";
+      return null;
+    }
+
+    function sortNames(names) {
+      const unique = [...new Set(names)];
+      return unique.sort((a, b) =>
+        a.localeCompare(b, "pt-BR", { numeric: true, sensitivity: "base" })
+      );
+    }
+
+    function toItems(names) {
+      return sortNames(names)
+        .filter((name) => name && !name.startsWith(".") && typeOf(name))
+        .map((name) => ({
+          name,
+          type: typeOf(name),
+          url: CONFIG.pasta + encodeURIComponent(name) + "?v=" + Date.now()
+        }));
+    }
+
+    /* LER A PASTA
+       1) midia/lista.php  (hospedagem com PHP)
+       2) listagem da pasta (servidor que mostra o conteúdo da pasta)
+       3) CONFIG.listaManual */
+
+    async function readFolder() {
+      const noCache = "?t=" + Date.now();
+
+      try {
+        const response = await fetch(CONFIG.pasta + "lista.php" + noCache, { cache: "no-store" });
+        if (response.ok) {
+          const data = await response.json();
+          if (Array.isArray(data)) return toItems(data);
+        }
+      } catch (error) {
+        // Sem PHP: tenta o próximo jeito.
+      }
+
+      try {
+        const response = await fetch(CONFIG.pasta + noCache, { cache: "no-store" });
+        if (response.ok) {
+          const html = await response.text();
+          const doc = new DOMParser().parseFromString(html, "text/html");
+          const names = [...doc.querySelectorAll("a[href]")]
+            .map((link) => link.getAttribute("href").split("?")[0].split("#")[0])
+            .filter((href) => href && !href.endsWith("/"))
+            .map((href) => {
+              try {
+                return decodeURIComponent(href.split("/").pop());
+              } catch (error) {
+                return href.split("/").pop();
+              }
+            });
+          const items = toItems(names);
+          if (items.length) return items;
+        }
+      } catch (error) {
+        // Sem listagem: usa a lista manual.
+      }
+
+      if (CONFIG.listaManual.length) return toItems(CONFIG.listaManual);
+
+      // Procura 01 a CONFIG.maxNumerados, em vídeo ou imagem. O que não existir é pulado.
+      const nomes = [];
+      for (let i = 1; i <= CONFIG.maxNumerados; i++) {
+        const n = String(i).padStart(2, "0");
+        ["mp4", "webm", "jpg", "jpeg", "png", "webp", "gif"].forEach((ext) => {
+          nomes.push(n + "." + ext); // 01.jpg, 01.png, 01.mp4...
+        });
+      }
+      return toItems(nomes);
+    }
+
+    async function refreshPlaylist() {
+      const items = await readFolder();
+      // Se a leitura falhar no meio do dia, continua com a lista que já tinha.
+      if (items.length || !playlist.length) playlist = items;
+    }
+
+    function imageSeconds(name) {
+      const match = name.match(/__(\d+)s\./i);
+      return match ? Number(match[1]) : CONFIG.segundosPorArte;
+    }
+
+    /* PREPARAR O PRÓXIMO ITEM (escondido, por baixo do atual) */
+
+    function withTimeout(promise, ms, label) {
+      let timer;
+      const timeout = new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error("Tempo esgotado: " + label)), ms);
+      });
+      return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+    }
+
+    function prepareImage(item) {
+      const img = document.createElement("img");
+      img.className = "media";
+      img.alt = "";
+      img.decoding = "async";
+      img.style.objectFit = CONFIG.ajuste;
+
+      const ready = new Promise((resolve, reject) => {
+        img.onload = () => {
+          const decoded = img.decode ? img.decode().catch(() => {}) : Promise.resolve();
+          decoded.then(() => resolve(img));
+        };
+        img.onerror = () => reject(new Error("Não abriu a arte " + item.name));
+      });
+
+      img.src = item.url;
+      stage.appendChild(img);
+
+      return withTimeout(ready, IMAGE_TIMEOUT_MS, item.name).catch((error) => {
+        dispose(img);
+        throw error;
+      });
+    }
+
+    function prepareVideo(item) {
+      const video = document.createElement("video");
+      video.className = "media";
+      video.muted = true;
+      video.defaultMuted = true;
+      video.playsInline = true;
+      video.controls = false;
+      video.preload = "auto";
+      video.poster = BLANK_POSTER;
+      video.disablePictureInPicture = true;
+      video.disableRemotePlayback = true;
+      video.setAttribute("muted", "");
+      video.setAttribute("playsinline", "");
+      video.setAttribute("webkit-playsinline", "");
+      video.setAttribute("disablepictureinpicture", "");
+      video.setAttribute("controlslist", "nodownload nofullscreen noplaybackrate noremoteplayback");
+      video.style.objectFit = CONFIG.ajuste;
+
+      const ready = new Promise((resolve, reject) => {
+        video.addEventListener("error", () => reject(new Error("Não abriu o vídeo " + item.name)), { once: true });
+
+        video.addEventListener("playing", () => {
+          // Espera o primeiro quadro de verdade ser desenhado antes de mostrar.
+          if (video.requestVideoFrameCallback) {
+            const fallback = setTimeout(() => resolve(video), 500);
+            video.requestVideoFrameCallback(() => {
+              clearTimeout(fallback);
+              resolve(video);
+            });
+          } else {
+            setTimeout(() => resolve(video), 80);
+          }
+        }, { once: true });
+      });
+
+      video.src = item.url;
+      stage.appendChild(video);
+
+      const playAttempt = video.play();
+      if (playAttempt && playAttempt.catch) {
+        playAttempt.catch((error) => {
+          if (error && error.name === "NotAllowedError") {
+            showMessage("A TV bloqueou a reprodução automática. Aperte OK no controle para começar.", true);
+          }
+        });
+      }
+
+      return withTimeout(ready, VIDEO_TIMEOUT_MS, item.name).catch((error) => {
+        dispose(video);
+        throw error;
+      });
+    }
+
+    function dispose(element) {
+      if (!element) return;
+      if (element.tagName === "VIDEO") {
+        element.pause();
+        element.removeAttribute("src");
+        element.load();
+      }
+      element.remove();
+    }
+
+    /* MOSTRAR O ITEM PRONTO POR CIMA DO ANTERIOR */
+
+    function reveal(element) {
+      const previous = current;
+      current = element;
+
+      // Força o navegador a aplicar a opacidade 0 antes da transição.
+      void element.offsetWidth;
+      element.classList.add("visible");
+      hideMessage();
+
+      if (previous) {
+        setTimeout(() => dispose(previous), CONFIG.transicaoMs + 100);
+      }
+    }
+
+    /* AVANÇAR NA PROGRAMAÇÃO */
+
+    async function playNext() {
+      const mySession = session;
+      clearTimeout(imageTimer);
+      clearInterval(stallTimer);
+
+      // Tenta no máximo uma volta inteira. O tamanho é lido a cada passo
+      // porque a lista pode ter acabado de ser carregada da pasta.
+      for (let attempt = 0; attempt < Math.max(playlist.length, 1); attempt++) {
+        index++;
+
+        // A cada volta completa, lê a pasta de novo para pegar arquivos novos.
+        if (index >= playlist.length) {
+          index = 0;
+          await refreshPlaylist();
+          if (mySession !== session) return;
+        }
+
+        if (!playlist.length) {
+          showMessage("Nenhum vídeo ou arte encontrado na pasta. Tentando de novo em 30 segundos.");
+          imageTimer = setTimeout(playNext, 30000);
+          return;
+        }
+
+        const item = playlist[index];
+
+        try {
+          const element = item.type === "video"
+            ? await prepareVideo(item)
+            : await prepareImage(item);
+
+          if (mySession !== session) {
+            dispose(element);
+            return;
+          }
+
+          reveal(element);
+
+          if (item.type === "image") {
+            imageTimer = setTimeout(playNext, imageSeconds(item.name) * 1000);
+          } else {
+            watchVideo(element, mySession);
+          }
+          return;
+        } catch (error) {
+          console.warn("Pulando item com problema:", error.message);
+          if (mySession !== session) return;
+        }
+      }
+
+      showMessage("Nenhum arquivo da pasta pôde ser exibido. Tentando de novo em 30 segundos.");
+      imageTimer = setTimeout(playNext, 30000);
+    }
+
+    function watchVideo(video, mySession) {
+      const next = () => {
+        if (mySession === session && current === video) playNext();
+      };
+
+      video.addEventListener("ended", next, { once: true });
+      video.addEventListener("error", next, { once: true });
+
+      // Se o vídeo travar no meio, pula para o próximo em vez de congelar a TV.
+      let lastTime = -1;
+      let lastChange = Date.now();
+      stallTimer = setInterval(() => {
+        if (current !== video) return;
+        if (video.currentTime !== lastTime) {
+          lastTime = video.currentTime;
+          lastChange = Date.now();
+        } else if (!video.paused && Date.now() - lastChange > STALL_LIMIT_MS) {
+          console.warn("Vídeo travado, pulando.");
+          next();
+        }
+      }, 1000);
+    }
+
+    /* MENSAGENS */
+
+    function showMessage(text, clickToPlay) {
+      playerMessage.textContent = text;
+      playerMessage.style.display = "flex";
+      playerMessage.onclick = clickToPlay ? resumeAfterBlock : null;
+    }
+
+    function hideMessage() {
+      playerMessage.style.display = "none";
+      playerMessage.onclick = null;
+    }
+
+    function resumeAfterBlock() {
+      hideMessage();
+      stage.querySelectorAll("video").forEach((video) => {
+        const attempt = video.play();
+        if (attempt && attempt.catch) attempt.catch(() => {});
+      });
+    }
+
+    /* MANTER A TELA LIGADA */
+
+    async function keepScreenOn() {
+      try {
+        if ("wakeLock" in navigator && document.visibilityState === "visible") {
+          wakeLock = await navigator.wakeLock.request("screen");
+        }
+      } catch (error) {
+        // Nem toda TV permite. Não atrapalha a programação.
+      }
+    }
+
+    document.addEventListener("visibilitychange", () => {
+      if (playerScreen.style.display === "block" && document.visibilityState === "visible") {
+        keepScreenOn();
+      }
+    });
+
+    /* BOTÃO SAIR: aparece só quando alguém mexe */
+
+    let uiTimer = null;
+
+    function showUi() {
+      if (playerScreen.style.display !== "block") return;
+      playerScreen.classList.add("show-ui");
+      clearTimeout(uiTimer);
+      uiTimer = setTimeout(() => {
+        playerScreen.classList.remove("show-ui");
+        if (document.activeElement === exitButton) exitButton.blur();
+      }, 4000);
+    }
+
+    ["mousemove", "pointerdown", "touchstart"].forEach((name) => {
+      playerScreen.addEventListener(name, showUi, { passive: true });
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (playerScreen.style.display !== "block") return;
+
+      if (playerMessage.onclick && (event.key === "Enter" || event.key === " ")) {
+        event.preventDefault();
+        resumeAfterBlock();
+        return;
+      }
+
+      const wasHidden = !playerScreen.classList.contains("show-ui");
+      showUi();
+      if (wasHidden) {
+        // Primeiro toque no controle só mostra o botão, não sai.
+        event.preventDefault();
+        exitButton.focus();
+      }
+    });
+
+    exitButton.addEventListener("click", logout);
+
+    /* LOGIN */
+
+    function startPlayer() {
+      loginScreen.style.display = "none";
+      playerScreen.style.display = "block";
+      hideMessage();
+
+      session++;
+      index = -1;
+      playlist = [];
+      keepScreenOn();
+      playNext();
+    }
+
+    function login() {
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value;
+
+      if (username === ACCESS.username && password === ACCESS.password) {
+        document.getElementById("loginError").style.display = "none";
+
+        // Lembra o login, para a TV voltar sozinha à programação depois de reiniciar.
+        try {
+          localStorage.setItem("muitaCarneTv", "1");
+        } catch (error) {}
+
+        // Tela cheia, quando a TV permite.
+        const root = document.documentElement;
+        if (root.requestFullscreen && !document.fullscreenElement) {
+          root.requestFullscreen().catch(() => {});
+        }
+
+        startPlayer();
+      } else {
+        document.getElementById("loginError").style.display = "block";
+      }
+    }
+
+    function logout() {
+      session++;
+      clearTimeout(imageTimer);
+      clearInterval(stallTimer);
+      stage.querySelectorAll(".media").forEach(dispose);
+      current = null;
+
+      try {
+        localStorage.removeItem("muitaCarneTv");
+      } catch (error) {}
+
+      if (wakeLock) {
+        wakeLock.release().catch(() => {});
+        wakeLock = null;
+      }
+
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+
+      playerScreen.classList.remove("show-ui");
+      playerScreen.style.display = "none";
+      loginScreen.style.display = "flex";
+
+      document.getElementById("username").value = "";
+      document.getElementById("password").value = "";
+    }
+
+    document.getElementById("loginButton").addEventListener("click", login);
+
+    document.getElementById("password").addEventListener("keydown", (event) => {
+      if (event.key === "Enter") login();
+    });
+
+    document.getElementById("username").addEventListener("keydown", (event) => {
+      if (event.key === "Enter") document.getElementById("password").focus();
+    });
+
+    // Se a TV já tinha entrado antes, volta direto para a programação.
+    let remembered = false;
+    try {
+      remembered = localStorage.getItem("muitaCarneTv") === "1";
+    } catch (error) {}
+
+    if (remembered) startPlayer();
+  </script>
+
+</body>
+</html>
